@@ -43,14 +43,14 @@ flowchart LR
 Для VirtualBox из Windows сначала выполните [подготовку ВМ](docs/virtualbox.md). На выделенной Ubuntu 24.04:
 
 ```bash
-git clone --branch dev-mts-devops https://github.com/Rostyangrib/hakaton-MTS.git
+git clone --branch main https://github.com/Rostyangrib/hakaton-MTS.git
 cd hakaton-MTS
 sudo ./bootstrap.sh
 ./deploy.sh
 ./verify.sh
 ```
 
-На этапе разработки используется `dev-mts-devops`; перед сдачей проверенный результат должен находиться в `main`, а инструкция переключается на неё. Не выполняйте bootstrap на машине с чужим Kubernetes-кластером. Скрипт отказывается менять кластер без маркера проекта. Повторный запуск установки сохраняет существующий кластер.
+Разработка ведётся в `dev-mts-devops`, итог для сдачи — в `main`. Не выполняйте bootstrap на машине с чужим Kubernetes-кластером. Скрипт отказывается менять кластер без маркера проекта. Повторный запуск установки сохраняет существующий кластер.
 
 Для поэтапной установки и диагностики доступны `./deploy.sh app`, затем `./deploy.sh gateway`, `./deploy.sh monitoring` и `./deploy.sh logging`. Вызов без аргументов устанавливает всё в этом порядке.
 
