@@ -1,0 +1,16 @@
+# Local infrastructure and credentials
+.local/
+*.iso
+*.vdi
+*.vmdk
+*.vbox*
+*.pem
+*.key
+*.env
+kubeconfig*
+!*.env.example
+__pycache__/
+.venv/
+# Generated submission artifacts
+submission/
+reports/
