@@ -94,6 +94,10 @@ if [[ $(kubectl get node "$node_name" -o jsonpath='{.spec.taints[?(@.key=="node-
   kubectl taint node "$node_name" node-role.kubernetes.io/control-plane:NoSchedule-
 fi
 kubectl label node "$node_name" mts-devops/managed=true --overwrite
+# The single control-plane node also serves external Gateway traffic.
+if kubectl get node "$node_name" -o json | jq -e '.metadata.labels | has("node.kubernetes.io/exclude-from-external-load-balancers")' >/dev/null; then
+  kubectl label node "$node_name" node.kubernetes.io/exclude-from-external-load-balancers-
+fi
 kubectl wait --for=condition=Ready node/"$node_name" --timeout=300s
 kubectl -n kube-system rollout status deployment/coredns --timeout=300s
 install -d -m 700 -o "$target_user" -g "$(id -gn "$target_user")" "$target_home/.kube"

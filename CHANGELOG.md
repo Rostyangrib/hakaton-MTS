@@ -1,5 +1,13 @@
 # Журнал изменений
 
+## 2026-10-02 — Компоненты и сквозная проверка
+
+- Развернуты Nginx, Envoy Gateway, Prometheus и Fluentd.
+- В bootstrap добавлено снятие метки exclude-from-external-load-balancers с единственного узла: Gateway получает адрес и Programmed=True.
+- Для Fluentd задан TMPDIR=/state, совместимый с read-only корневой файловой системой.
+- verify.sh прошёл: HTTP 200, targets UP, рост счётчика 111 → 128, access/error записи в файлах.
+- Из Windows http://127.0.0.1:8080/ возвращает Hello World!; доступная память ВМ после установки около 2,4 ГБ.
+
 ## 2026-10-02 — Kubernetes запущен
 
 - bootstrap.sh успешно выполнен на установленной Ubuntu с 4 ГБ RAM.

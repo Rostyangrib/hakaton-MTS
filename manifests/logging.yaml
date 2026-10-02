@@ -81,6 +81,7 @@ spec:
             readOnlyRootFilesystem: true
             capabilities: {drop: [ALL]}
           env:
+            - {name: TMPDIR, value: /state}
             - name: NODE_NAME
               valueFrom:
                 fieldRef: {fieldPath: spec.nodeName}
