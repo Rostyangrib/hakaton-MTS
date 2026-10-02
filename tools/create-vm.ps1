@@ -1,5 +1,5 @@
 param(
-    [int]$MemoryMB = 8192,
+    [int]$MemoryMB = 4096,
     [int]$Cpus = 4,
     [switch]$Start
 )

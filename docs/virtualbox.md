@@ -4,7 +4,7 @@
 
 ## Автоматическая установка из Windows
 
-Требуются VirtualBox 7.2, PowerShell 7, OpenSSH Client и интернет. Настройки по умолчанию: 8 ГБ RAM, 4 vCPU, динамический диск 30 ГБ. Освободите память перед запуском ВМ.
+Требуются VirtualBox 7.2, PowerShell 7, OpenSSH Client и интернет. Согласованный компактный стенд: 4 ГБ RAM, 4 vCPU, динамический диск 30 ГБ. При наличии свободной памяти можно указать `-MemoryMB 8192` для запаса.
 
 ```powershell
 New-Item -ItemType Directory -Force .local
