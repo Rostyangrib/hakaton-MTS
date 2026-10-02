@@ -1,0 +1,33 @@
+#cloud-config
+autoinstall:
+  version: 1
+  refresh-installer:
+    update: false
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+  timezone: Asia/Irkutsk
+  identity:
+    hostname: mts-devops
+    username: mts
+    password: '@@VBOX_INSERT_USER_PASSWORD_SHACRYPT512@@'
+  ssh:
+    install-server: true
+    allow-pw: false
+    authorized-keys:
+      - '@@PUBLIC_KEY@@'
+  storage:
+    layout:
+      name: direct
+    swap:
+      size: 0
+  apt:
+    fallback: offline-install
+  packages:
+    - curl
+    - git
+    - ca-certificates
+  late-commands:
+    - [sh, -c, "printf '%s\\n' 'mts ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/mts-devops"]
+    - [chmod, '440', /target/etc/sudoers.d/mts-devops]
+  shutdown: reboot
