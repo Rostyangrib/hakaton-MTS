@@ -15,7 +15,20 @@ flowchart LR
     Fluentd --> Logs[Файлы на Ubuntu узле]
 ```
 
-Планируемая среда: Ubuntu Server 24.04, один узел kubeadm, containerd, Flannel, Envoy Gateway, Nginx, Prometheus и Fluentd. Компоненты и их точные версии будут зафиксированы в конфигурации установки.
+Среда: Ubuntu Server 24.04, один узел kubeadm, containerd из репозитория Ubuntu, Flannel, Envoy Gateway, Nginx, Prometheus и Fluentd. Функциональные проверки пока не завершены — актуальный статус указан отдельно.
+
+| Компонент | Версия |
+| --- | --- |
+| Kubernetes / kubeadm / kubelet / kubectl | 1.35.3 |
+| Helm | 3.18.6 |
+| Flannel | 0.28.9 |
+| Envoy Gateway | 1.9.2 |
+| Gateway API | Поставляется с зафиксированным Helm-chart Envoy Gateway |
+| Nginx | 1.28.0-alpine |
+| Prometheus | 3.5.0 |
+| Fluentd | 1.18.0-debian-1.0 |
+
+Версии установленных Debian-пакетов, включая containerd, bootstrap сохраняет в `/etc/mts-devops/packages.txt`. Установка пакетов Ubuntu использует актуальный репозиторий ОС; это зависимость от доступности репозитория. Образы имеют фиксированные теги; побитовая неизменность тегов внешнего registry не гарантируется.
 
 ## Требования
 
@@ -24,9 +37,35 @@ flowchart LR
 - Kubernetes создаётся на этой машине; существующие производственные кластеры не поддерживаются сценарием установки.
 - Облачный аккаунт и коммерческий балансировщик не нужны.
 
-## Планируемые команды
+## Установка
 
-После реализации установка будет состоять из `sudo ./bootstrap.sh`, `./deploy.sh` и `./verify.sh`. До появления и проверки этих сценариев команды не являются готовой инструкцией.
+Для VirtualBox из Windows сначала выполните [подготовку ВМ](docs/virtualbox.md). На выделенной Ubuntu 24.04:
+
+```bash
+git clone --branch dev-mts-devops https://github.com/Rostyangrib/hakaton-MTS.git
+cd hakaton-MTS
+sudo ./bootstrap.sh
+./deploy.sh
+./verify.sh
+```
+
+На этапе разработки используется `dev-mts-devops`; перед сдачей проверенный результат должен находиться в `main`, а инструкция переключается на неё. Не выполняйте bootstrap на машине с чужим Kubernetes-кластером. Скрипт отказывается менять кластер без маркера проекта. Повторный запуск установки сохраняет существующий кластер.
+
+Сценарии подготовлены; успешность полной установки должна подтверждаться результатами [проверки](docs/verification.md), а не только наличием файлов.
+
+## Проверка компонентов
+
+- HTTP: `curl http://<IP-узла>:30080/`, ожидается `Hello World!` и код 200.
+- Gateway API: ресурсы GatewayClass, Gateway, HTTPRoute, EnvoyProxy; входной Service имеет NodePort 30080.
+- Prometheus: метрики прокси через `/stats/prometheus`, контроллера через `/metrics`; доступность, число запросов, HTTP-коды и время обработки.
+- Fluentd: читает CRI-логи Nginx из `/var/log/containers`, сохраняет JSON в `/var/lib/mts-devops/logs/`.
+- Полная проверка и команды диагностики: [docs/verification.md](docs/verification.md).
+
+## Дополнительные возможности
+
+Две копии Nginx, readiness/liveness, запуск приложения без root с read-only файловой системой, CPU/RAM requests и limits, HTTP-метрики, автоматическая проверка маршрута и собранных access/error-логов. Это заявленный состав конфигураций; подтверждённые проверки перечисляются в статусе проекта.
+
+Fluentd работает как root для чтения системных файлов, имеет read-only доступ к `/var/log`, отключённый токен ServiceAccount, запрет повышения привилегий и сброшенные capabilities. Prometheus получает права чтения только Pod в namespace контроллера. kubeconfig пользователя даёт административный доступ к выделенному стенду и не публикуется.
 
 ## Ограничения
 

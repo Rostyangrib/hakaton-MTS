@@ -9,6 +9,7 @@
 *.env
 kubeconfig*
 !*.env.example
+!config/versions.env
 __pycache__/
 .venv/
 # Generated submission artifacts
