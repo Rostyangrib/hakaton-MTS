@@ -79,7 +79,32 @@ curl -sG http://127.0.0.1:19090/api/v1/query --data-urlencode 'query=sum(envoy_h
 
 Две копии Nginx, readiness/liveness, запуск приложения без root с read-only файловой системой, CPU/RAM requests и limits, HTTP-метрики, автоматическая проверка маршрута и собранных access/error-логов.
 
+CI в [.github/workflows/check.yml](.github/workflows/check.yml) запускается на push и pull request: Bash проверяется через bash -n и ShellCheck, YAML — через PyYAML, включая вложенную конфигурацию Prometheus. Результаты доступны во вкладке [Actions](https://github.com/Rostyangrib/hakaton-MTS/actions). Это статические проверки; сквозной тест кластера выполняется командой ./verify.sh на Ubuntu.
+
+verify.sh создаёт десять успешных запросов и один 404, проверяет рост 2xx/4xx и числа измерений latency. Средняя latency выводится в миллисекундах за интервал проверки; в неё может входить фоновый трафик Envoy.
+
 Fluentd работает как root для чтения системных файлов, имеет read-only доступ к `/var/log`, отключённый токен ServiceAccount, запрет повышения привилегий и сброшенные capabilities. Prometheus получает права чтения только Pod в namespace контроллера. kubeconfig пользователя даёт административный доступ к выделенному стенду и не публикуется.
+
+## Отчёт проверки
+
+Среда: Ubuntu 24.04.4, VirtualBox, 4 vCPU / 4 ГБ RAM. Результаты ниже относятся к указанным датам, а не к постоянному мониторингу стенда.
+
+| Сценарий | Дата | Результат |
+| --- | --- | --- |
+| Установка из clean-ubuntu | 02.10.2026 | clone → bootstrap → deploy → verify, код 0; HTTP-счётчик 23 → 40 |
+| Повторные bootstrap и deploy | 02.10.2026 | Кластер сохранён, verify прошёл; счётчик 193 → 210 |
+| Удаление Nginx Pod | 02.10.2026 | Восстановлены 2 реплики; verify прошёл, счётчик 215 → 232 |
+| Перезагрузка ВМ | 02.10.2026 | Компоненты восстановились; verify прошёл, счётчик 245 → 262 |
+| Расширенная проверка HTTP-метрик | 03.10.2026 | verify прошёл: 2xx 3 → 16, 4xx 0 → 1, latency samples 8 → 25; среднее 1,81 мс |
+
+Пример завершающих строк проверки с чистого снимка:
+
+```text
+PASS: Gateway HTTP 200 and Hello World!
+PASS: Prometheus targets UP; HTTP counter 23 -> 40
+PASS: Fluentd collected access and error records for check-1790940896-13785
+PASS: All mandatory component checks passed.
+```
 
 ## Ограничения
 

@@ -40,18 +40,39 @@ for _ in {1..30}; do
   sleep 2
 done
 [[ $healthy == true ]]
-before=$(query 'sum(envoy_http_downstream_rq_total)' | jq -er '.data.result[0].value[1] | tonumber')
+metric() { query "$1" | jq -er 'select(.status=="success") | .data.result[0].value[1] | tonumber'; }
+requests='sum(envoy_http_downstream_rq_total{job="envoy-proxy"})'
+codes_2xx='sum(envoy_http_downstream_rq_xx{job="envoy-proxy",envoy_response_code_class="2"}) or vector(0)'
+codes_4xx='sum(envoy_http_downstream_rq_xx{job="envoy-proxy",envoy_response_code_class="4"}) or vector(0)'
+latency_count='sum(envoy_http_downstream_rq_time_count{job="envoy-proxy"})'
+latency_sum='sum(envoy_http_downstream_rq_time_sum{job="envoy-proxy"})'
+before=$(metric "$requests")
+before_2xx=$(metric "$codes_2xx")
+before_4xx=$(metric "$codes_4xx")
+before_count=$(metric "$latency_count")
+before_sum=$(metric "$latency_sum")
 for _ in {1..10}; do curl -fsS "$base_url/" >/dev/null; done
 marker="check-$(date +%s)-$RANDOM"
 [[ $(curl -sS -o /dev/null -w '%{http_code}' "$base_url/$marker") == 404 ]]
 increased=false
 for _ in {1..20}; do
-  after=$(query 'sum(envoy_http_downstream_rq_total)' | jq -er '.data.result[0].value[1] | tonumber')
-  if jq -en --argjson before "$before" --argjson after "$after" '$after >= ($before + 11)' >/dev/null; then increased=true; break; fi
+  after=$(metric "$requests")
+  after_2xx=$(metric "$codes_2xx")
+  after_4xx=$(metric "$codes_4xx")
+  after_count=$(metric "$latency_count")
+  after_sum=$(metric "$latency_sum")
+  if jq -en --argjson before "$before" --argjson after "$after" \
+    --argjson b2 "$before_2xx" --argjson a2 "$after_2xx" \
+    --argjson b4 "$before_4xx" --argjson a4 "$after_4xx" \
+    --argjson bc "$before_count" --argjson ac "$after_count" \
+    --argjson bs "$before_sum" --argjson asum "$after_sum" \
+    '$after >= $before+11 and $a2 >= $b2+10 and $a4 >= $b4+1 and $ac >= $bc+11 and $asum >= $bs' >/dev/null; then increased=true; break; fi
   sleep 2
 done
 [[ $increased == true ]]
 echo "PASS: Prometheus targets UP; HTTP counter $before -> $after"
+latency_ms=$(jq -n --argjson sum "$after_sum" --argjson before_sum "$before_sum" --argjson count "$after_count" --argjson before_count "$before_count" '($sum-$before_sum)/($count-$before_count)')
+echo "PASS: HTTP 2xx $before_2xx -> $after_2xx; 4xx $before_4xx -> $after_4xx; latency samples $before_count -> $after_count; mean ${latency_ms} ms"
 collected=false
 for _ in {1..30}; do
   if kubectl -n logging exec daemonset/fluentd -- sh -c "grep '$marker' /collected/nginx*.log" >"$tmp/collected" 2>/dev/null; then

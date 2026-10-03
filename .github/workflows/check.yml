@@ -1,0 +1,33 @@
+name: Проверка конфигураций
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Установить инструменты проверки
+        run: sudo apt-get update && sudo apt-get install -y shellcheck python3-yaml
+      - name: Проверить Bash
+        run: |
+          for file in bootstrap.sh deploy.sh verify.sh; do bash -n "$file"; done
+          shellcheck -x bootstrap.sh deploy.sh verify.sh
+      - name: Проверить синтаксис YAML
+        run: |
+          /usr/bin/python3 - <<'PY'
+          from pathlib import Path
+          import yaml
+          files = list(Path('manifests').glob('*.yaml')) + list(Path('config').glob('*.yaml'))
+          files += list(Path('.github/workflows').glob('*.yml'))
+          files += [Path('tools/ubuntu-autoinstall.yaml.template')]
+          for path in files:
+              documents = list(yaml.safe_load_all(path.read_text()))
+              for document in documents:
+                  if isinstance(document, dict) and 'prometheus.yml' in document.get('data', {}):
+                      yaml.safe_load(document['data']['prometheus.yml'])
+              print(f'OK: {path}')
+          PY
